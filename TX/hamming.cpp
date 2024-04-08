@@ -6,11 +6,11 @@
 #include "hamming.h"
 
   // public constructor
-Hamming::Hamming();  // encoder/decoder
+Hamming::Hamming() {};  // encoder/decoder
   // Encode function
 char* Hamming::Encode(char *msg, int length)
   {
-    int byte_position, data_byte;
+  int byte_position, data_byte;
         // byte1 and byte2
   char byte1;
   char byte2;
@@ -21,8 +21,8 @@ char* Hamming::Encode(char *msg, int length)
     int pb2 = 0;
     int pb4 = 0;
     int pb8 = 0;
-    char* encoded_msg = new char[length*2];
-
+    char* encoded_msg = new char[length*2+8];
+  byte_position = 0;
     //for each byte in the message
     for (char byte=0; byte < length; byte++)
     {
@@ -31,24 +31,24 @@ char* Hamming::Encode(char *msg, int length)
       data_byte = (((int)msg[byte] & 0xF0) << 4) | (((int)msg[byte] & 0x0E) << 3) | (((int)msg[byte] & 0x01) << 2);
       
       // reset parity bits
-      pb1, pb2, pb4, pb8 = 0,0,0,0;
+      pb1 = pb2 = pb4 = pb8 = 0;
       // calculate parity bits
       for(char bit_position = 1; bit_position < 13; bit_position++)
       {
         // grab bit from data byte
-        data_bit = data_byte  & 0x01;
+        data_bit = data_byte & 0x01;
         // toggle parity bits if bit position is correct and there is another 1 in that spot
-        pb1 = (bit_position & 1) ? pb1 ^ data_bit : pb1;
-        pb2 = (bit_position & 2) ? pb2 ^ data_bit : pb2; 
-        pb4 = (bit_position & 4) ? pb4 ^ data_bit : pb4;
-        pb8 = (bit_position & 8) ? pb8 ^ data_bit : pb8;
+        pb1 = (bit_position & 0x01) ? pb1 ^ data_bit : pb1;
+        pb2 = (bit_position & 0x02) ? pb2 ^ data_bit : pb2; 
+        pb4 = (bit_position & 0x04) ? pb4 ^ data_bit : pb4;
+        pb8 = (bit_position & 0x08) ? pb8 ^ data_bit : pb8;
 
         data_byte = data_byte >> 1;
       }
 
       // spread the encoded data across 2 bytes
         //byte1 = pb8,msgbit4,3,2,pb4, msb1, pb2, pb1
-      byte1 = (pb4 << 7) | ((msg[byte] & 0x0E) << 3) | (pb4 << 3) | (msg[byte] & 0x01) | (pb2 << 1) | pb1;
+      byte1 = (pb8 << 7) | ((msg[byte] << 3) & 0x70) | (pb4 << 3) | (msg[byte]<<2)&0x04 | (pb2 << 1) | pb1;
         // byte2 = 0,0,0,0,msgb8,7,6,5
       byte2 = (msg[byte] & 0xF0) >> 4;
       // add encoded bytes to encoded message and increase byte position counter 
@@ -68,7 +68,7 @@ char* Hamming::Encode(char *msg, int length)
 */
 char* Hamming::Decode(char* msg, int length)
 {
-  char* decoded_msg = new char[length];
+  char* decoded_msg = new char[length+1];
   //variables
     // byte positions
   char byte_position = 0; // index of byte in recieved message
@@ -91,6 +91,7 @@ char* Hamming::Decode(char* msg, int length)
   // process the rx message
   while(byte_position < rx_length)  // while not at the end of the rx message
   {
+    pb1 = pb2 = pb4 = pb8 = 0;  // reset parity bits
     // pull out next two bytes and put them into an int for processing  
       //byte1 = pb8,msgbit4,3,2,pb4, msb1, pb2, pb1
     byte1 = msg[byte_position];
@@ -99,7 +100,7 @@ char* Hamming::Decode(char* msg, int length)
     byte2 = msg[byte_position];
     byte_position++;
 
-    rx_byte = ((int)byte2 << 8) | ((int)byte1);
+    rx_byte = ((int)byte2 << 8) | (byte1);
     data_byte = rx_byte; // make a copy for data processing
     // calculate parity bits of rx data
     // calculate parity bits
@@ -108,10 +109,10 @@ char* Hamming::Decode(char* msg, int length)
         // grab next bit from data byte
         data_bit = data_byte & 0x1;
         // toggle parity bits if bit position is correct and there is another 1 in that spot
-        pb1 = (bit_position & 0x1) ? pb1 ^ data_bit : pb1;
-        pb2 = (bit_position & 0x2) ? pb2 ^ data_bit : pb2; 
-        pb4 = (bit_position & 0x4) ? pb4 ^ data_bit : pb4;
-        pb8 = (bit_position & 0x8) ? pb8 ^ data_bit : pb8;
+        pb1 = (bit_position & 0x1)==0x1 ? pb1 ^ data_bit : pb1;
+        pb2 = (bit_position & 0x2)==0x2 ? pb2 ^ data_bit : pb2; 
+        pb4 = (bit_position & 0x4)==0x4 ? pb4 ^ data_bit : pb4;
+        pb8 = (bit_position & 0x8)==0x8 ? pb8 ^ data_bit : pb8;
 
         data_byte = data_byte >> 1;
       }
@@ -121,15 +122,14 @@ char* Hamming::Decode(char* msg, int length)
     flip_index = (pb8 << 3) | (pb4 << 2) | (pb2 << 1) | pb1;
     if(flip_index != 0x0)
     {
-      flip_index--;   // remove 1 to prevent off by 1 error
-      rx_byte = rx_byte ^ (0x01 << flip_index);  // shift over to the position indicated by flip index
+      rx_byte = rx_byte ^ (0x01 << (flip_index-1));  // shift over to the position indicated by flip index
     }
     // compress back to 1 byte character and add to decoded message array
       //rx_byte = 0,0,0,0,msgb8,7,6,5,pb8,msgbit4,3,2,pb4, msb1, pb2, pb1
-    decoded_msg[decode_index] = ((rx_byte & 0xF00)>>4) | ((rx_byte & 0x070)>>3) | ((rx_byte & 0x004)>>2);
+    decoded_msg[decode_index] = ((rx_byte>>4)&0xF0) | ((rx_byte>>3)&0x0E) | ((rx_byte>>2) & 0x1);
     decode_index++;
   }
-  
+  decoded_msg[length] = '\0';
 
   return decoded_msg;
 }

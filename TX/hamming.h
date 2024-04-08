@@ -13,5 +13,4 @@ class Hamming
     char* Encode(char* msg, int length);
     char* Decode(char* msg, int length);
 };//end of class Hamming
-
 #endif
