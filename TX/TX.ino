@@ -18,72 +18,44 @@
 */
 
 #define TX_PIN  11          //pin where your transmitter is connected
-#define GRN_LED  4          //pin for Green LED
-#define YLO_LED  5          //pin for Yellow LED
-#define datalength   7      //this is size of array
+#define datalength 4       //this is size of array
 #define button  10          //pin where your active-low button is connected
 #define ADC_PIN A0          // pin where the adc is
 
-
-uint8_t data[7] = {7, 'G', 'O', 'J', 'A', 'Y', 'S'};  // array of data to transmit
-
 void setup()
 {
-  // pinMode(GRN_LED , OUTPUT);
-  // digitalWrite(GRN_LED, LOW);
-  // pinMode(YLO_LED , OUTPUT);
-  // digitalWrite(YLO_LED, LOW);
-  // pinMode(ADC_PIN,INPUT);
-
-  // for (byte i = 0; i < 5; i++)
-  // {
-  //   digitalWrite(5, HIGH);
-  //   digitalWrite(4, HIGH);
-  //   delay(25);
-  //   digitalWrite(5, LOW);
-  //   digitalWrite(4, LOW);
-
-  // }
+  pinMode(ADC_PIN,INPUT);
+  pinMode(button,INPUT);
 
   Serial.begin(115200);
-  //man.workAround1MhzTinyCore(); //add this in order for transmitter to work with 1Mhz Attiny85/84
-  // man.setupTransmit(TX_PIN, MAN_300);
+  man.setupTransmit(TX_PIN, MAN_300);
 }
 
 
 
 void loop()
 {
-  char message[4];
-  char byte;
-  char byte_count = 0;
-  Hamming encoder = Hamming::Hamming();
+  uint8_t data[datalength];
+  int adc_val = 0;
   while(1)
   {
-    while(!(Serial.available()));
-    String rx = Serial.readString();
-    rx.trim();
-    for(int i =0;i<4;i++)
+    while (digitalRead(button)); // wait for button press indicating the potentiometer has been set
+    adc_val = analogRead(ADC_PIN);
+
+    for(char i = 1; i < datalength+1; i++)
     {
-      message[i] = rx[i];
+      data[datalength-i] = adc_val % 10;
+      adc_val /= 10;
     }
-    while(Serial.available())
+
+    for(char i = 0; i<4;i++)
     {
-      byte = Serial.read();
+      Serial.print(data[i]);
     }
-    Serial.println(message);
-    char* encoded_msg = encoder.Encode(message, 4);
-    Serial.println(encoded_msg);
-    char* decoded_msg = encoder.Decode(encoded_msg, 4);
-    Serial.println(decoded_msg);
     Serial.println();
-    Serial.flush();
-    // man.transmitArray(datalength, data);
-    // for (int i = 0; i < 5; i++)
-    // { digitalWrite(YLO_LED, 1);
-    //   delay(150);
-    //   digitalWrite(YLO_LED, 0);
-    // }
-    // delay(1000);
+    // uint8_t* encoded_data = encoder.Encode(data, datalength);
+    // man.transmitArray(datalength*2, encoded_data);
+    man.transmitArray(datalength, data);
+    // delay(10000); // prevent transmission for 10s for regulation reasons
   }
 }

@@ -1,5 +1,6 @@
-#include <manchester.h>
-
+#include "manchester.h"
+#include "hamming.h"
+#include <Servo.h>
 /*
 
   Manchester Receiver example
@@ -23,15 +24,12 @@
 #define RX_PIN 11
 #define LED_PIN 13
 
-
-#define BUFFER_SIZE 7
+#define BUFFER_SIZE 4
 uint8_t buffer[BUFFER_SIZE];
 uint8_t Rx_num=0;
-
+Servo servo;
 void setup() {
-  pinMode(LED_PIN, OUTPUT); 
-  Serial.begin(1200); 
-  digitalWrite(LED_PIN, 0);
+  Serial.begin(115200); 
   man.setupReceive(RX_PIN, MAN_300 );
   man.beginReceiveArray(BUFFER_SIZE, buffer);
 
@@ -51,11 +49,10 @@ void loop() {
 
     man.beginReceiveArray(BUFFER_SIZE, buffer);
     for(int i=0; i<BUFFER_SIZE; i++){
-        Serial.print(char(buffer[i]));
+        Serial.print(buffer[i]);
     }
     Serial.println();
   }
   delay(500);
   digitalWrite(LED_PIN, 0);
-  Serial.println("end");
 }
