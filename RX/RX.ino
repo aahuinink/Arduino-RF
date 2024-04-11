@@ -24,7 +24,7 @@
 #define RX_PIN 11
 #define LED_PIN 13
 
-#define BUFFER_SIZE 4
+#define BUFFER_SIZE 8
 uint8_t buffer[BUFFER_SIZE];
 uint8_t Rx_num=0;
 Servo servo;
@@ -38,7 +38,8 @@ void setup() {
 
 void loop() {
 	
-	
+	Hamming decoder = Hamming::Hamming();
+  uint8_t* decoded_data;
   if (man.receiveComplete()) {
 	  
 	  Rx_num++;
@@ -48,9 +49,17 @@ void loop() {
 	  
 
     man.beginReceiveArray(BUFFER_SIZE, buffer);
+    
     for(int i=0; i<BUFFER_SIZE; i++){
         Serial.print(buffer[i]);
     }
+    Serial.println();
+    decoded_data = decoder.Decode(buffer, 4);
+    for(int i=0;i<4;i++)
+    {
+      Serial.print(decoded_data[i]);
+    }
+    Serial.println();
     Serial.println();
   }
   delay(500);

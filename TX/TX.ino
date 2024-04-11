@@ -37,6 +37,7 @@ void loop()
 {
   uint8_t data[datalength];
   int adc_val = 0;
+  Hamming encoder = Hamming::Hamming();
   while(1)
   {
     while (digitalRead(button)); // wait for button press indicating the potentiometer has been set
@@ -53,9 +54,10 @@ void loop()
       Serial.print(data[i]);
     }
     Serial.println();
-    // uint8_t* encoded_data = encoder.Encode(data, datalength);
+    uint8_t* encoded_data = encoder.Encode(data, datalength);
+    uint8_t encoded_length = datalength*2;
     // man.transmitArray(datalength*2, encoded_data);
-    man.transmitArray(datalength, data);
+    man.transmitArray(encoded_length, encoded_data);
     // delay(10000); // prevent transmission for 10s for regulation reasons
   }
 }
