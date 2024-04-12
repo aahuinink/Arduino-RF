@@ -129,7 +129,6 @@ uint8_t* Hamming::Decode(uint8_t* msg, int length)
     decoded_msg[decode_index] = ((rx_byte>>4)&0xF0) | ((rx_byte>>3)&0x0E) | ((rx_byte>>2) & 0x1);
     decode_index++;
   }
-  decoded_msg[length] = '\0';
 
   return decoded_msg;
 }

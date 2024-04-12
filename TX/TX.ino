@@ -48,13 +48,27 @@ void loop()
       data[datalength-i] = adc_val % 10;
       adc_val /= 10;
     }
-
+    Serial.println();
+    Serial.println();
+    Serial.print("Pot Value: ");
     for(char i = 0; i<4;i++)
     {
       Serial.print(data[i]);
     }
-    Serial.println();
     uint8_t* encoded_data = encoder.Encode(data, datalength);
+    Serial.println();
+    Serial.print("Hamming encoded data: ");
+    for (char i = 0; i<8; i++)
+    {
+      Serial.print(encoded_data[i]);
+    }
+    encoded_data[2] ^= 0x40;
+    Serial.println();
+    Serial.print("Bit-flip error data: ");
+    for (char i = 0; i<8; i++)
+    {
+      Serial.print(encoded_data[i]);
+    }
     uint8_t encoded_length = datalength*2;
     // man.transmitArray(datalength*2, encoded_data);
     man.transmitArray(encoded_length, encoded_data);
